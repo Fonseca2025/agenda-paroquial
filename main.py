@@ -9,11 +9,11 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 # --- CONFIGURAÇÕES ---
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+NUMERO_SARAH = "5538991467612"
 
 bot = telebot.TeleBot(TOKEN)
 tz = pytz.timezone("America/Sao_Paulo")
 agora = datetime.now(tz)
-hoje_str = agora.strftime("%Y-%m-%d")
 
 # --- CARREGAR EVENTOS ---
 try:
@@ -26,23 +26,31 @@ except FileNotFoundError:
 # --- FUNÇÕES AUXILIARES ---
 
 def formatar_evento_texto(evento):
-    """Formata o evento para texto (sem 'Horário a definir')."""
+    """Formata o evento para texto simples."""
     hora = evento.get("hora")
     if hora:
         return f'{hora} - {evento["evento"]} ({evento["local"]})'
     return f'{evento["evento"]} ({evento["local"]})'
 
+def criar_botao_whatsapp(texto_mensagem):
+    """Cria o teclado inline com o botão para o WhatsApp."""
+    # Codifica o texto para ser aceito na URL (espaços viram %20)
+    texto_encoded = quote(texto_mensagem)
+    link = f"https://wa.me/{NUMERO_SARAH}?text={texto_encoded}"
+    
+    markup = InlineKeyboardMarkup()
+    btn = InlineKeyboardButton(text="📲 Enviar para Sarah", url=link)
+    markup.add(btn)
+    return markup
+
 def gerar_mensagem_periodo(tipo_periodo):
-    """Gera o texto da agenda para Hoje, Semana ou Mês."""
+    """Gera o texto da agenda baseada no filtro (hoje, semana, mes)."""
     
-    lista_mensagens = []
-    titulo = ""
-    
-    # Define o intervalo de datas
+    # Configurações de datas e títulos
     data_inicio = agora.date()
     data_fim = None
+    titulo = ""
     
-    # NOTA: Removi os asteriscos (*) dos títulos para evitar erro de Markdown
     if tipo_periodo == 'hoje':
         titulo = "📅 Agenda de Hoje"
         data_fim = data_inicio
@@ -53,12 +61,12 @@ def gerar_mensagem_periodo(tipo_periodo):
         
     elif tipo_periodo == 'mes':
         titulo = f"📊 Agenda do Mês ({agora.strftime('%m/%Y')})"
-        # Vai até o fim do mês aproximado
+        # Lógica para pegar até o fim do mês
         proximo_mes = agora.replace(day=28) + timedelta(days=4)
         ultimo_dia_mes = proximo_mes - timedelta(days=proximo_mes.day)
         data_fim = ultimo_dia_mes.date()
 
-    # Filtra os eventos
+    # Construção do texto
     texto_final = titulo + "\n\n"
     tem_evento = False
     
@@ -68,6 +76,7 @@ def gerar_mensagem_periodo(tipo_periodo):
             
             if data_inicio <= data_evento <= data_fim:
                 prefixo_data = ""
+                # Se não for agenda diária, mostra a data antes do evento
                 if tipo_periodo != 'hoje':
                     prefixo_data = f"{data_evento.strftime('%d/%m')}: "
                 
@@ -81,46 +90,44 @@ def gerar_mensagem_periodo(tipo_periodo):
     return None
 
 # ==============================================================================
-# 1. ENVIO DA AGENDA DO DIA (PRINCIPAL)
+# 1. ENVIO DA AGENDA DO DIA
 # ==============================================================================
 msg_hoje = gerar_mensagem_periodo('hoje')
 
 if msg_hoje:
-    # Cria o botão para encaminhar manualmente
-    texto_para_link = quote(msg_hoje) 
-    link_zap = f"https://wa.me/5538991467612?text={texto_para_link}"
-    
-    markup = InlineKeyboardMarkup()
-    btn = InlineKeyboardButton(text="📲 Enviar para Sarah", url=link_zap)
-    markup.add(btn)
-    
-    # REMOVIDO: parse_mode="Markdown" para evitar o erro 400
+    markup = criar_botao_whatsapp(msg_hoje)
     bot.send_message(CHAT_ID, msg_hoje, reply_markup=markup)
 else:
     print("Sem eventos para hoje.")
 
 # ==============================================================================
-# 2. TESTES DE PERÍODO (SEMANAL E MENSAL)
+# 2. ENVIO DA AGENDA SEMANAL
 # ==============================================================================
-
-# Teste Semanal
 msg_semana = gerar_mensagem_periodo('semana')
+
 if msg_semana:
-    bot.send_message(CHAT_ID, "--- TESTE SEMANAL ---\n" + msg_semana)
+    markup = criar_botao_whatsapp(msg_semana)
+    # Adiciono um cabeçalho extra para você saber que é o teste semanal no Telegram
+    bot.send_message(CHAT_ID, "--- VISUALIZAÇÃO SEMANAL ---", disable_notification=True) 
+    bot.send_message(CHAT_ID, msg_semana, reply_markup=markup)
 
-# Teste Mensal
+# ==============================================================================
+# 3. ENVIO DA AGENDA MENSAL
+# ==============================================================================
 msg_mes = gerar_mensagem_periodo('mes')
+
 if msg_mes:
-    bot.send_message(CHAT_ID, "--- TESTE MENSAL ---\n" + msg_mes)
+    markup = criar_botao_whatsapp(msg_mes)
+    bot.send_message(CHAT_ID, "--- VISUALIZAÇÃO MENSAL ---", disable_notification=True)
+    bot.send_message(CHAT_ID, msg_mes, reply_markup=markup)
 
 # ==============================================================================
-# 3. GERAÇÃO E ENVIO DE PDF
+# 4. ENVIO DO PDF
 # ==============================================================================
-print("Iniciando geração de PDF...")
+print("Verificando PDF...")
 
 try:
     import gerar_pdf 
-    
     nome_arquivo = "agenda.pdf" 
 
     if os.path.exists(nome_arquivo):
@@ -128,10 +135,8 @@ try:
             bot.send_document(CHAT_ID, doc, caption="📂 Arquivo PDF gerado")
         print("PDF enviado.")
     else:
-        # Se o arquivo não existe, tenta verificar se o script gerou com outro nome ou se houve erro silencioso
-        bot.send_message(CHAT_ID, "⚠️ O script rodou, mas o arquivo 'agenda.pdf' não foi encontrado.")
+        # Apenas loga no console, não manda msg de erro para não poluir o chat
+        print("Arquivo PDF não encontrado.")
 
-except ImportError:
-    bot.send_message(CHAT_ID, "⚠️ Erro: Script 'gerar_pdf.py' não encontrado.")
 except Exception as e:
-    bot.send_message(CHAT_ID, f"❌ Erro ao processar PDF: {str(e)}")
+    print(f"Erro no módulo PDF: {e}")
