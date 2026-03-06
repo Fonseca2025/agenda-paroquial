@@ -3,8 +3,8 @@ import os
 import telebot
 from datetime import datetime
 import pytz
-from urllib.parse import quote # Importação necessária para formatar o texto para link
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton # Importação dos botões
+from urllib.parse import quote
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
@@ -21,21 +21,26 @@ mensagem = "📅 Agenda da Paróquia\n\n"
 
 for e in eventos:
     if e["data"] == hoje:
-        mensagem += f'{e.get("hora", "Horário a definir")} - {e["evento"]} ({e["local"]})\n'
+        hora = e.get("hora")
+        
+        # Se existir horário preenchido no JSON
+        if hora:
+            mensagem += f'{hora} - {e["evento"]} ({e["local"]})\n'
+        # Se não tiver horário, coloca apenas o nome do evento e local
+        else:
+            mensagem += f'{e["evento"]} ({e["local"]})\n'
 
-# Verifica se há eventos para enviar
+# Verifica se a mensagem tem conteúdo além do cabeçalho
 if mensagem != "📅 Agenda da Paróquia\n\n":
     
-    # 1. Codifica a mensagem para funcionar dentro de um link (transforma espaços em %20, etc)
+    # Prepara o link para o botão do WhatsApp
     texto_para_link = quote(mensagem)
-    
-    # 2. Cria o link com o número da Sarah e o texto da agenda
     link_whatsapp = f"https://wa.me/5538991467612?text={texto_para_link}"
 
-    # 3. Cria o teclado inline (o botão)
+    # Cria o botão
     markup = InlineKeyboardMarkup()
     botao = InlineKeyboardButton(text="📲 Enviar para Sarah", url=link_whatsapp)
     markup.add(botao)
 
-    # 4. Envia a mensagem com o botão (reply_markup)
+    # Envia a mensagem
     bot.send_message(CHAT_ID, mensagem, reply_markup=markup)
