@@ -19,7 +19,7 @@ mensagem = "📅 Agenda da Paróquia\n\n"
 
 for e in eventos:
     if e["data"] == hoje:
-        mensagem += f'{e["hora"]} - {e["evento"]} ({e["local"]})\n'
+        mensagem += f'{e.get("hora", "Horário a definir")} - {e["evento"]} ({e["local"]})\n'
 
 if mensagem != "📅 Agenda da Paróquia\n\n":
     bot.send_message(CHAT_ID, mensagem)
