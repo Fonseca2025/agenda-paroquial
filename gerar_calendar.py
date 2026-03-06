@@ -9,7 +9,7 @@ c = Calendar()
 for item in eventos:
     e = Event()
     e.name = item["evento"]
-    e.begin = item["data"] + " " + item["hora"]
+    e.begin = item["data"] + " " + item.get("hora", "08:00:00")
     e.location = item["local"]
     c.events.add(e)
 
