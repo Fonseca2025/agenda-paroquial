@@ -104,7 +104,7 @@ if agora.weekday() == 0:
 # 3. ENVIO DA AGENDA MENSAL E PDF (APENAS NO DIA 1º DO MÊS)
 # ==============================================================================
 # Verifica se hoje é o primeiro dia do mês
-if True:
+if agora.day == 1:
     msg_mes = gerar_mensagem_periodo('mes')
     
     # Envia o Texto Mensal
