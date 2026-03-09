@@ -101,34 +101,35 @@ if agora.weekday() == 0:
         bot.send_message(CHAT_ID, msg_semana, reply_markup=markup)
 
 # ==============================================================================
-# 3. ENVIO DA AGENDA MENSAL (APENAS NO DIA 1º DO MÊS)
+# 3. ENVIO DA AGENDA MENSAL E PDF (APENAS NO DIA 1º DO MÊS)
 # ==============================================================================
 # Verifica se hoje é o primeiro dia do mês
-if agora.day == 1:
+if True:
     msg_mes = gerar_mensagem_periodo('mes')
+    
+    # Envia o Texto Mensal
     if msg_mes:
         markup = criar_botao_whatsapp(msg_mes)
         bot.send_message(CHAT_ID, "📊 *Sua Agenda do Mês chegou!*", parse_mode="Markdown")
         bot.send_message(CHAT_ID, msg_mes, reply_markup=markup)
+    
+    # Envia o PDF Mensal
+    print("Gerando e enviando PDF do mês...")
+    try:
+        import gerar_pdf 
+        gerar_pdf.gerar() # Chama a função que criamos no outro arquivo
+        
+        nome_arquivo = "agenda_paroquial.pdf"
+
+        if os.path.exists(nome_arquivo):
+            with open(nome_arquivo, "rb") as doc:
+                bot.send_document(CHAT_ID, doc, caption="📂 PDF da Agenda Mensal")
+            print("PDF enviado com sucesso.")
+        else:
+            print("Arquivo PDF não encontrado.")
+
+    except Exception as e:
+        print(f"Erro ao processar PDF: {e}")
+
 else:
-    print("Hoje não é dia 1º. A agenda mensal não será enviada hoje.")
-
-# ==============================================================================
-# 4. ENVIO DO PDF
-# ==============================================================================
-print("Verificando PDF...")
-
-try:
-    import gerar_pdf 
-    nome_arquivo = "agenda_paroquial.pdf" 
-
-    if os.path.exists(nome_arquivo):
-        with open(nome_arquivo, "rb") as doc:
-            bot.send_document(CHAT_ID, doc, caption="📂 Arquivo PDF gerado")
-        print("PDF enviado.")
-    else:
-        # Apenas loga no console, não manda msg de erro para não poluir o chat
-        print("Arquivo PDF não encontrado.")
-
-except Exception as e:
-    print(f"Erro no módulo PDF: {e}")
+    print("Hoje não é dia 1º. A agenda mensal e o PDF não serão enviados hoje.")
