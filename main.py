@@ -120,7 +120,7 @@ print("Verificando PDF...")
 
 try:
     import gerar_pdf 
-    nome_arquivo = "agenda.pdf" 
+    nome_arquivo = "agenda_paroquial.pdf" 
 
     if os.path.exists(nome_arquivo):
         with open(nome_arquivo, "rb") as doc:
