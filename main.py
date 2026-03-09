@@ -90,36 +90,28 @@ def gerar_mensagem_periodo(tipo_periodo):
     return None
 
 # ==============================================================================
-# 1. ENVIO DA AGENDA DO DIA
+# 2. ENVIO DA AGENDA SEMANAL (OPCIONAL: Apenas nas Segundas-feiras)
 # ==============================================================================
-msg_hoje = gerar_mensagem_periodo('hoje')
+# agora.weekday() == 0 significa "Segunda-feira". 
+if agora.weekday() == 0: 
+    msg_semana = gerar_mensagem_periodo('semana')
+    if msg_semana:
+        markup = criar_botao_whatsapp(msg_semana)
+        bot.send_message(CHAT_ID, "🗓 *Sua Agenda da Semana chegou!*", parse_mode="Markdown") 
+        bot.send_message(CHAT_ID, msg_semana, reply_markup=markup)
 
-if msg_hoje:
-    markup = criar_botao_whatsapp(msg_hoje)
-    bot.send_message(CHAT_ID, msg_hoje, reply_markup=markup)
+# ==============================================================================
+# 3. ENVIO DA AGENDA MENSAL (APENAS NO DIA 1º DO MÊS)
+# ==============================================================================
+# Verifica se hoje é o primeiro dia do mês
+if agora.day == 1:
+    msg_mes = gerar_mensagem_periodo('mes')
+    if msg_mes:
+        markup = criar_botao_whatsapp(msg_mes)
+        bot.send_message(CHAT_ID, "📊 *Sua Agenda do Mês chegou!*", parse_mode="Markdown")
+        bot.send_message(CHAT_ID, msg_mes, reply_markup=markup)
 else:
-    print("Sem eventos para hoje.")
-
-# ==============================================================================
-# 2. ENVIO DA AGENDA SEMANAL
-# ==============================================================================
-msg_semana = gerar_mensagem_periodo('semana')
-
-if msg_semana:
-    markup = criar_botao_whatsapp(msg_semana)
-    # Adiciono um cabeçalho extra para você saber que é o teste semanal no Telegram
-    bot.send_message(CHAT_ID, "--- VISUALIZAÇÃO SEMANAL ---", disable_notification=True) 
-    bot.send_message(CHAT_ID, msg_semana, reply_markup=markup)
-
-# ==============================================================================
-# 3. ENVIO DA AGENDA MENSAL
-# ==============================================================================
-msg_mes = gerar_mensagem_periodo('mes')
-
-if msg_mes:
-    markup = criar_botao_whatsapp(msg_mes)
-    bot.send_message(CHAT_ID, "--- VISUALIZAÇÃO MENSAL ---", disable_notification=True)
-    bot.send_message(CHAT_ID, msg_mes, reply_markup=markup)
+    print("Hoje não é dia 1º. A agenda mensal não será enviada hoje.")
 
 # ==============================================================================
 # 4. ENVIO DO PDF
